@@ -4,7 +4,7 @@
 
 [ -r .env ] && source .env
 usage() {
-    echo "$(basename "$0") [-d|-H|-R] [-i <issuer> -r <realm> -u <user> -p <password> -c <client_id> -s <client_secret> -g <grant_type>] " 1>&2
+    echo "$(basename "$0") [-d|-H|-R-t] [-i <issuer> -r <realm> -u <user> -p <password> -c <client_id> -s <client_secret> -g <grant_type> -o <scope>] " 1>&2
     echo 1>&2
     echo "Options:" 1>&2
     echo "  -d  -- Dump decoded version of the retrieved token" 1>&2
@@ -48,25 +48,7 @@ dumptoken() {
     base64decode "$p2" | jq
 }
 
-obtainRPT() {
-    ISSUER_URL="${ISSUER}/realms/${REALM}//protocol/openid-connect/token"
-    if ! result=$(curl -ks --fail-with-body -L \
-        -H "Authorization: Bearer ${ACCESS_TOKEN}" \
-        -d client_id="${CLIENT_ID}" \
-        -d audience="${CLIENT_ID}" \
-        -d grant_type="urn:ietf:params:oauth:grant-type:uma-ticket" \
-        -d scope="openid profile email" \
-        "${ISSUER_URL}"); then 
-
-    echo "Error!" >&2
-    echo "$(echo "$result" | jq -r '.error'): $(echo "$result" | jq -r '.error_description')" >&2
-    exit 1
-    fi
-
-    echo "RPT: $result" 
-}
-
-while getopts ":dHRr:i:u:p:c:s:g:t" OPT; do
+while getopts ":dHRr:i:u:p:c:s:g:o:" OPT; do
     case "$OPT" in 
         d)
             DECONSTRUCT=true
@@ -95,8 +77,11 @@ while getopts ":dHRr:i:u:p:c:s:g:t" OPT; do
         p)
             PASSWORD=${OPTARG}
             ;;
-        t)
-            GET_RPT=true
+        g)  
+            GRANT_TYPE=${OPTARG}
+            ;;
+        o)  
+            SCOPE=${OPTARG}
             ;;
         *)
             usage
@@ -130,6 +115,10 @@ if [ -z "${GRANT_TYPE}" ]; then
     GRANT_TYPE=password
 fi
 
+if [ -z "${SCOPE}" ]; then
+    SCOPE="openid profile email"
+fi
+
 if [ -z "${CLIENT_SECRET}" ] && [ "${GRANT_TYPE}" = "client_credentials" ]; then 
     echo "!no CLIENT_SECRET" >&2
     exit 2
@@ -145,8 +134,6 @@ if [ -z "${PASSWORD}" ] && [ "${GRANT_TYPE}" = "password" ]; then
     exit 2
 fi
 
-#echo "DEBUG: $REALM/$GRANT_TYPE/$USERNAME/$PASSWORD"
-
 
 ISSUER_URL="${ISSUER}/realms/${REALM}//protocol/openid-connect/token"
 if ! result=$(curl -ks --fail-with-body -L \
@@ -155,7 +142,7 @@ if ! result=$(curl -ks --fail-with-body -L \
     -d username="${USERNAME}" \
     -d password="${PASSWORD}" \
     -d grant_type="${GRANT_TYPE}" \
-    -d scope="openid profile email" \
+    -d scope="${SCOPE}" \
     "${ISSUER_URL}"); then 
 
     echo "Error!" >&2
