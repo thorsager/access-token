@@ -7,10 +7,11 @@ I add along the way gets tracked.
 
 ## Install
 ```bash
-curl https://raw.githubusercontent.com/thorsager/access-token/refs/heads/main/access-token.sh --out ~/.local/bin/
-chmod +x ~/.local/bin/access-token.sh
+mkdir -p "$HOME/.local/bin" \
+&& curl https://raw.githubusercontent.com/thorsager/access-token/refs/heads/main/access-token.sh --output "$HOME/.local/bin/access-token.sh" \
+&& chmod +x "$HOME/.local/bin/access-token.sh"
 ```
-And ensure that ~/.local/bin is in your path.
+And ensure that `~/.local/bin` is in your path.
 
 ## Get Started
 ```bash
